@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QR_CORE // SYSTEM_V7</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+        :root {
+            --neon: #ff63c3; 
+            --bg: #050505;
+            --panel: rgba(10, 10, 10, 0.95);
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            background-color: var(--bg);
+            color: var(--neon);
+            font-family: 'Courier Prime', monospace;
+            overflow-x: hidden;
+            text-transform: uppercase;
+        }
+
+        #matrix-bg {
+            position: fixed;
+            top: 0; left: 0;
+            z-index: -1;
+            opacity: 0.25;
+        }
+
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        #header-art {
+            white-space: pre;
+            font-size: clamp(3px, 0.7vw, 7px);
+            margin-bottom: 1rem;
+            line-height: 1.1;
+            text-shadow: 0 0 8px var(--neon);
+        }
+
+        .main-frame {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+            max-width: 1200px;
+            width: 100%;
+            border: 2px solid var(--neon);
+            padding: 2rem;
+            background: var(--panel);
+            backdrop-filter: blur(10px);
+        }
+
+        .controls { display: flex; flex-direction: column; gap: 15px; }
+        .control-group {
+            border: 1px solid var(--neon);
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        label { font-size: 0.7rem; display: block; margin-bottom: 8px; font-weight: bold; }
+
+        input[type="text"] {
+            background: transparent; border: 1px solid var(--neon);
+            color: var(--neon); padding: 8px; width: 92%;
+            font-family: inherit; outline: none; margin-bottom: 5px;
+        }
+
+        input[type="range"] { width: 100%; accent-color: var(--neon); cursor: crosshair; }
+
+        .btn-row { display: flex; align-items: center; gap: 10px; }
+        
+        button {
+            background: var(--neon); color: black;
+            border: none; padding: 14px; font-family: inherit;
+            font-weight: 700; cursor: pointer; flex: 1;
+            transition: 0.2s;
+        }
+
+        button.invert-btn {
+            flex: 0 0 70px;
+            padding: 8px;
+            font-size: 0.6rem;
+            background: transparent;
+            color: var(--neon);
+            border: 1px solid var(--neon);
+        }
+
+        button:hover { background: white; color: black; }
+
+        /* Unified Memory Slot Styles */
+        .memory-bank {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+
+        .memory-slot {
+            position: relative;
+            height: 50px;
+            border: 1px solid var(--neon);
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .slot-picker {
+            position: absolute;
+            top: -5px; left: -5px;
+            width: 120%; height: 120%;
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+
+        .slot-label {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: white;
+            mix-blend-mode: difference;
+            z-index: 2;
+        }
+
+        /* Preview Area */
+        .preview-container {
+            position: relative;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--neon);
+            min-height: 400px;
+        }
+
+        #qr-border-wrap { display: inline-block; line-height: 0; }
+        canvas { image-rendering: pixelated; }
+
+        .scanner-line {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 2px;
+            background: var(--neon);
+            box-shadow: 0 0 20px var(--neon);
+            z-index: 10;
+            animation: scan 4s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="matrix-bg"></canvas>
+
+<div class="wrapper">
+    <div id="header-art">
+ ░▒▓██████▓▒░░▒▓███████▓▒░       ░▒▓█▓▒░       ░▒▓██████▓▒░░▒▓███████▓▒░  
+ ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+ ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+ ░▒▓█▓▒░░▒▓█▓▒░▒▓███████▓▒░       ░▒▓█▓▒░      ░▒▓████████▓▒░▒▓███████▓▒░  
+ ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+ ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+  ░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░      ░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓███████▓▒░ 
+    </div>
+
+    <div class="main-frame">
+        <div class="controls">
+            <div class="control-group">
+                <label>> TARGET_URL</label>
+                <input type="text" id="text" value="https://google.com" oninput="updateQR()">
+            </div>
+
+            <div class="control-group">
+                <label>> QR_COLOR_MATRIX</label>
+                <div class="btn-row">
+                    <input type="color" id="dark" value="#ff63c3" oninput="updateQR()">
+                    <input type="color" id="light" value="#050505" oninput="updateQR()">
+                    <button class="invert-btn" onclick="invertColors()">INVERT</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>> BORDER_SUBSYSTEM</label>
+                <input type="color" id="borderColor" value="#ff63c3" oninput="updateQR()" style="width:100%; margin-bottom:10px;">
+                <input type="range" id="borderWidth" min="0" max="40" value="10" oninput="updateQR()">
+            </div>
+
+            <div class="control-group">
+                <label>> PRESET_STORAGE (C1-C5)</label>
+                <div class="memory-bank">
+                    <div class="memory-slot" oncontextmenu="loadMemory(0); return false;">
+                        <span class="slot-label">C1</span>
+                        <input type="color" class="slot-picker" id="picker-0" oninput="saveMemory(0)">
+                    </div>
+                    <div class="memory-slot" oncontextmenu="loadMemory(1); return false;">
+                        <span class="slot-label">C2</span>
+                        <input type="color" class="slot-picker" id="picker-1" oninput="saveMemory(1)">
+                    </div>
+                    <div class="memory-slot" oncontextmenu="loadMemory(2); return false;">
+                        <span class="slot-label">C3</span>
+                        <input type="color" class="slot-picker" id="picker-2" oninput="saveMemory(2)">
+                    </div>
+                    <div class="memory-slot" oncontextmenu="loadMemory(3); return false;">
+                        <span class="slot-label">C4</span>
+                        <input type="color" class="slot-picker" id="picker-3" oninput="saveMemory(3)">
+                    </div>
+                    <div class="memory-slot" oncontextmenu="loadMemory(4); return false;">
+                        <span class="slot-label">C5</span>
+                        <input type="color" class="slot-picker" id="picker-4" oninput="saveMemory(4)">
+                    </div>
+                </div>
+                <p style="font-size: 0.55rem; margin-top: 8px;">LEFT-CLICK: SET COLOR TO QR CODE // RIGHT-CLICK: CHANGE COLOR</p>
+            </div>
+
+            <button onclick="downloadQR()">[ EXECUTE_HD_EXPORT ]</button>
+        </div>
+
+        <div class="preview-container">
+            <div class="scanner-line"></div>
+            <div id="qr-border-wrap">
+                <div id="qrcode"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Matrix Background
+    const mCanvas = document.getElementById('matrix-bg');
+    const mCtx = mCanvas.getContext('2d');
+    mCanvas.width = window.innerWidth; mCanvas.height = window.innerHeight;
+    const drops = Array(Math.floor(mCanvas.width / 16)).fill(1);
+
+    function drawMatrix() {
+        mCtx.fillStyle = "rgba(0, 0, 0, 0.08)";
+        mCtx.fillRect(0, 0, mCanvas.width, mCanvas.height);
+        mCtx.fillStyle = "#ff63c3"; 
+        mCtx.font = "14px Courier Prime";
+        drops.forEach((y, i) => {
+            const char = Math.random() > 0.5 ? "1" : "0";
+            mCtx.fillText(char, i * 16, y * 16);
+            if (y * 16 > mCanvas.height && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
+        });
+    }
+    setInterval(drawMatrix, 50);
+
+    // 2. Core QR Logic
+    function updateQR() {
+        const text = document.getElementById('text').value;
+        const dark = document.getElementById('dark').value;
+        const light = document.getElementById('light').value;
+        const bColor = document.getElementById('borderColor').value;
+        const bWidth = document.getElementById('borderWidth').value;
+        
+        const container = document.getElementById('qrcode');
+        const wrapper = document.getElementById('qr-border-wrap');
+        
+        container.innerHTML = "";
+        wrapper.style.padding = bWidth + "px";
+        wrapper.style.backgroundColor = bColor;
+
+        if(!text) return;
+
+        new QRCode(container, {
+            text: text, width: 300, height: 300,
+            colorDark: dark, colorLight: light,
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
+
+    function invertColors() {
+        const d = document.getElementById('dark');
+        const l = document.getElementById('light');
+        const temp = d.value;
+        d.value = l.value;
+        l.value = temp;
+        updateQR();
+    }
+
+    // 3. Preset Logic
+    function saveMemory(index) {
+        const color = document.getElementById(`picker-${index}`).value;
+        localStorage.setItem(`preset_color_${index}`, color);
+        // Automatically apply to current QR on change
+        document.getElementById('dark').value = color;
+        document.getElementById('borderColor').value = color;
+        updateQR();
+    }
+
+    function loadMemory(index) {
+        const savedColor = localStorage.getItem(`preset_color_${index}`);
+        if(savedColor) {
+            document.getElementById('dark').value = savedColor;
+            document.getElementById('borderColor').value = savedColor;
+            updateQR();
+        }
+    }
+
+    function initPresets() {
+        for(let i=0; i<5; i++) {
+            const val = localStorage.getItem(`preset_color_${i}`);
+            if(val) document.getElementById(`picker-${i}`).value = val;
+        }
+    }
+
+    // 4. Export
+    function downloadQR() {
+        const text = document.getElementById('text').value;
+        const dark = document.getElementById('dark').value;
+        const light = document.getElementById('light').value;
+        const bColor = document.getElementById('borderColor').value;
+        const bWidth = parseInt(document.getElementById('borderWidth').value) * 4;
+
+        const offscreen = document.createElement('div');
+        new QRCode(offscreen, { text: text, width: 1024, height: 1024, colorDark: dark, colorLight: light, correctLevel: QRCode.CorrectLevel.H });
+
+        setTimeout(() => {
+            const qrCanvas = offscreen.querySelector('canvas');
+            const finalCanvas = document.createElement('canvas');
+            const fCtx = finalCanvas.getContext('2d');
+            finalCanvas.width = 1024 + (bWidth * 2);
+            finalCanvas.height = 1024 + (bWidth * 2);
+            fCtx.fillStyle = bColor;
+            fCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+            fCtx.drawImage(qrCanvas, bWidth, bWidth);
+            
+            const link = document.createElement('a');
+            link.download = 'QR_CORE_ULTRA.png';
+            link.href = finalCanvas.toDataURL();
+            link.click();
+        }, 200);
+    }
+
+    window.onload = () => { initPresets(); updateQR(); };
+</script>
+</body>
+</html>
